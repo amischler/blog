@@ -1,0 +1,13 @@
+baseURL = "http://blog.mischmich.net/"
+languageCode = "fr"
+title = "amischler's blog"
+theme = "hugo-PaperMod"
+paginate = 5
+
+[params]
+  description = "amischler's blog"
+  author = "amischler"
+  [params.homeInfoParams]
+    enabled = true
+    Title = "Bienvenue ✍"
+    Content = "Réflexions personnelles diverses et variées"
