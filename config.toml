@@ -1,4 +1,5 @@
-baseURL = "http://blog.mischmich.net/"
+#baseURL = "http://blog.mischmich.net/"
+baseURL = "https://infallible-clarke-e90ec3.netlify.app"
 languageCode = "fr"
 title = "amischler's blog"
 theme = "hugo-PaperMod"
