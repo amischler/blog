@@ -2,7 +2,7 @@ baseURL = "http://www.amischler.fr/"
 languageCode = "fr"
 title = "amischler's blog"
 paginate = 5
-
+disqusShortname = 'amischler'
 [module]
 [[module.imports]]
     path = 'github.com/adityatelange/hugo-PaperMod'
@@ -13,6 +13,7 @@ paginate = 5
   ShowReadingTime = true
   ShowToc = true
   ShowPostNavLinks = true
+  comments = true
   [params.homeInfoParams]
     enabled = true
     Title = "Bienvenue ✍"
