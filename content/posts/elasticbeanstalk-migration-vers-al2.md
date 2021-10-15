@@ -10,7 +10,7 @@ Dans cet article je vais revenir sur la migration d'une application déployée s
 
 Cette migration fait suite à l'inscription de la plateforme actuellement utilisée (*Docker running on 64bit Amazon Linux/2.6.0*) pour déployer l'application concernée sur la liste des [platform versions scheduled for retirement](https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platforms-retiring.html#platforms-retiring.docker).
 
-![Plateforme Elastic Beanstalk dépréciée](images/deprecated-elasticbeanstalk-platform.png)
+![Plateforme Elastic Beanstalk dépréciée](/images/deprecated-elasticbeanstalk-platform.png)
 
 
 A une version de plateforme Elastic Beanstlak correspondent une version d'AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur [cette page pour les anciennes versions](https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platform-history-docker-legacy.html).
@@ -259,4 +259,4 @@ services:
 
 Et l'application est prête à être déployée sur la nouvelle plateforme !
 
-![Plateforme Elastic Beanstalk à jour](images/latest-elasticbeanstalk-platform.png)
+![Plateforme Elastic Beanstalk à jour](/images/latest-elasticbeanstalk-platform.png)
