@@ -1,13 +1,23 @@
 baseURL = "http://www.amischler.fr/"
 languageCode = "fr"
 title = "amischler's blog"
-theme = "hugo-PaperMod"
 paginate = 5
+
+[module]
+[[module.imports]]
+    path = 'github.com/adityatelange/hugo-PaperMod'
 
 [params]
   description = "amischler's blog"
   author = "amischler"
+  ShowReadingTime = true
+  ShowToc = true
+  ShowPostNavLinks = true
   [params.homeInfoParams]
     enabled = true
     Title = "Bienvenue ✍"
     Content = "Réflexions personnelles diverses et variées"
+  [params.editPost]
+    URL = "https://github.com/amischler/blog/blob/main/content"
+    Text = "Suggérer des changements"
+    appendFilePath = true

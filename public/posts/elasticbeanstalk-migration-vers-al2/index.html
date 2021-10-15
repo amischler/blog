@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Migration Elastic Beanstalk vers Amazon Linux 2 | amischler&#39;s blog</title>
+<meta name="keywords" content="" />
+<meta name="description" content="Dans cet article je vais revenir sur la migration d&rsquo;une application déployée sur Elastic Beanstalk Amazon Linux/Docker vers la nouvelle plateforme Amazon Linux 2/Docker.
+Plateforme Cette migration fait suite à l&rsquo;inscription de la plateforme actuellement utilisée (Docker running on 64bit Amazon Linux/2.6.0) pour déployer l&rsquo;application concernée sur la liste des platform versions scheduled for retirement.
+A une version de plateforme Elastic Beanstlak correspondent une version d&rsquo;AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur cette page pour les anciennes versions.">
+<meta name="author" content="amischler">
+<link rel="canonical" href="http://www.amischler.fr/posts/elasticbeanstalk-migration-vers-al2/" />
+<link crossorigin="anonymous" href="/assets/css/stylesheet.min.5e2b4101351c21e906f398ae96901791830f58d430f96f2659dab7eaef7b3cb7.css" integrity="sha256-XitBATUcIekG85iulpAXkYMPWNQw&#43;W8mWdq36u97PLc=" rel="preload stylesheet" as="style">
+<script defer crossorigin="anonymous" src="/assets/js/highlight.min.7680afc38aa6b15ddf158a4f3780b7b1f7dde7e91d26f073e6229bb7a0793c92.js" integrity="sha256-doCvw4qmsV3fFYpPN4C3sffd5&#43;kdJvBz5iKbt6B5PJI="
+    onload="hljs.initHighlightingOnLoad();"></script>
+<link rel="icon" href="http://www.amischler.fr/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://www.amischler.fr/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://www.amischler.fr/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://www.amischler.fr/apple-touch-icon.png">
+<link rel="mask-icon" href="http://www.amischler.fr/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<meta name="generator" content="Hugo 0.88.1" />
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --hljs-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:title" content="Migration Elastic Beanstalk vers Amazon Linux 2" />
+<meta property="og:description" content="Dans cet article je vais revenir sur la migration d&rsquo;une application déployée sur Elastic Beanstalk Amazon Linux/Docker vers la nouvelle plateforme Amazon Linux 2/Docker.
+Plateforme Cette migration fait suite à l&rsquo;inscription de la plateforme actuellement utilisée (Docker running on 64bit Amazon Linux/2.6.0) pour déployer l&rsquo;application concernée sur la liste des platform versions scheduled for retirement.
+A une version de plateforme Elastic Beanstlak correspondent une version d&rsquo;AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur cette page pour les anciennes versions." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://www.amischler.fr/posts/elasticbeanstalk-migration-vers-al2/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2021-10-13T11:59:24&#43;02:00" />
+<meta property="article:modified_time" content="2021-10-13T11:59:24&#43;02:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Migration Elastic Beanstalk vers Amazon Linux 2"/>
+<meta name="twitter:description" content="Dans cet article je vais revenir sur la migration d&rsquo;une application déployée sur Elastic Beanstalk Amazon Linux/Docker vers la nouvelle plateforme Amazon Linux 2/Docker.
+Plateforme Cette migration fait suite à l&rsquo;inscription de la plateforme actuellement utilisée (Docker running on 64bit Amazon Linux/2.6.0) pour déployer l&rsquo;application concernée sur la liste des platform versions scheduled for retirement.
+A une version de plateforme Elastic Beanstlak correspondent une version d&rsquo;AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur cette page pour les anciennes versions."/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://www.amischler.fr/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Migration Elastic Beanstalk vers Amazon Linux 2",
+      "item": "http://www.amischler.fr/posts/elasticbeanstalk-migration-vers-al2/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Migration Elastic Beanstalk vers Amazon Linux 2",
+  "name": "Migration Elastic Beanstalk vers Amazon Linux 2",
+  "description": "Dans cet article je vais revenir sur la migration d\u0026rsquo;une application déployée sur Elastic Beanstalk Amazon Linux/Docker vers la nouvelle plateforme Amazon Linux 2/Docker.\nPlateforme Cette migration fait suite à l\u0026rsquo;inscription de la plateforme actuellement utilisée (Docker running on 64bit Amazon Linux/2.6.0) pour déployer l\u0026rsquo;application concernée sur la liste des platform versions scheduled for retirement.\nA une version de plateforme Elastic Beanstlak correspondent une version d\u0026rsquo;AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur cette page pour les anciennes versions.",
+  "keywords": [
+    
+  ],
+  "articleBody": "Dans cet article je vais revenir sur la migration d’une application déployée sur Elastic Beanstalk Amazon Linux/Docker vers la nouvelle plateforme Amazon Linux 2/Docker.\nPlateforme Cette migration fait suite à l’inscription de la plateforme actuellement utilisée (Docker running on 64bit Amazon Linux/2.6.0) pour déployer l’application concernée sur la liste des platform versions scheduled for retirement.\nA une version de plateforme Elastic Beanstlak correspondent une version d’AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur cette page pour les anciennes versions.\nOn constate donc que notre plateforme Docker Amazon Linux 2.6.0 utilise :\n l’AMI Amazon Linux 2017.03.0 Docker 1.12.6 nginx 1.10.2  Le passage à une version plus récente de la plateforme va donc mettre à jour l’ensemble de ces composants. Lors de la réalisation de la migration, la version la plus récente de la plateforme Amazon Linux 2/Docker est la 3.4.7 qui correspond aux composants suivants :\n AMI Amazon Linux 2.0.20210813 Docker 20.10.7-3 Docker Compose 1.29.2 nginx 1.20.0  Notez au passage que Docker Compose a fait son apparition, je reviendrai sur le sujet ultérieurement dans l’article.\nPour réaliser la migration, il sera donc nécessaire que l’application soit compatible avec l’ensemble des composants de la plateforme mise à jour.\nDéploiement L’interface d’Elastic Beanstalk propose certes un bouton “Modification” au niveau du cartouche Plateforme mais ce bouton ne permet le passage des plateformes Amazon Linux vers Amazon Linux 2. Il permet uniquement de passer vers une version plus récente de la plateforme Amazon Linux/Docker. Cette option ne nous intéresse pas ici, car même les versions plus récentes des plateformes Amazon Linux/Docker sont dépréciées.\nDans ce cas il est nécessaire de procéder à un blue/green deployement c’est à dire :\n déployer un nouvel environnement avec la plateforme Amazon Linux 2/Docker procéder à un “swap” d’URL entre le nouvel environnement et l’ancien, lorsque le nouvel environnement est opérationnel.  Migration Docker La première étape de la migration consiste donc à vérifier que notre application est compatible avec la version de Docker 20.10.7-3. La construction de l’image avec le Dockerfile et le déploiement du conteneur se passent sans problème ; aucune adaptation n’est nécessaire à ce niveau là.\nAmazon Linux 2 La vérification de la compatibilité de l’application avec la nouvelle version de Docker étant faite, il s’agit à présent de migrer l’application afin d’être compatible avec la plateforme Amazon Linux 2.\nAWS propose un guide de migration pour préparer la mise à jour. D’après cette documentation, les changements à prévoir dans notre cas sont les suivants :\n déplacement des fichiers de personnalisation de la configuration nginx depuis .ebextensions/nginx vers .platform/nginx mettre à jour l’un de nos scripts .ebextensions qui utilise le mécanisme de Custom platform hooks pour utiliser les nouveaux mécanismes d’extension des plateformes Linux Elastic Beanstalk  Rien de bien méchant sur le papier, toutefois on se retrouve assez vite confrontés à des erreurs dans les scripts .ebxtensions :\n/bin/sh: initctl: command not found  En effet, Amazon Linux 2 n’utilise plus Upstart mais SystemD. Des adaptations de ces scripts sont donc à prévoir.\nPorts mutliples Mais avant de poursuivre et d’adapter les extensions concernées nous réalisons que ces scripts avaient pour objectif de customiser la plateforme afin de permettre à notre application d’être accessible sur deux ports : le port pour servir l’application et un port spécifique pour permettre la connection à distance d’un debugger JVM.\nEn effet, Elastic Beanstalk utilise une configuration standard du reverse proxy nginx qui utilise le port déclaré dans la directive EXPOSE du Dockerfile auquel il transmet les requêtes reçues. Si plusieurs ports sont déclarés dans cette directive, seul le premier est “lié” à nginx et les autres ports restent inacessibles sur l’instance ec2.\nPour rendre ce deuxième port accessible il avait été nécessaire de bypasser nginx avec des tweaks peu élégants de la configuration d’iptables.\nDocker Compose Or il se trouve que la nouvelle plateforme Amazon Linux 2/Docker introduit une nouveauté particulièrement intéressante : la possibilité d’utiliser Docker Compose pour décrire les services à démarrer.\n Attention il existait déjà une option sur Elastic Beanstalk pour gérer des environnements Docker multi-containers avec Amazon Linux via l’utilisation d’un fichier Dockerrun.aws.json. La co-existence de documentation relative à cette ancienne approche et la plateforme Amazon Linux 2 avec ou sans Docker Compose sur le site de documentation d’AWS rend les choses parfois un peu confuses, il faut bien faire attention à la plateforme à laquelle s’appliquent les différentes documentations et dans le cas Amazon Linux 2, des éléments spécifiques à l’utilisation de Docker Compose. Les différences entre le multi-container sur Amazon Linux et Docker Compose sur Amazon Linux 2 sont résumées ici.\n Dans ce cas, le reverse proxy nginx n’est pas géré par Elastic Beanstalk et c’est à l’utilisateur de déclarer et configurer le reverse proxy, ce qui offre beaucoup plus de possibilités de personnalisation.\nNous ajoutons donc un fichier docker-compose.ymlà notre projet qui permet à Elastic Beanstalk d’utiliser le Multi container platform avec Docker Compose.\nversion: \"3.9\" services: my-app: build: . ports: - \"9000:9000\" - \"5005:5005\" env_file: - .env container_name: \"my-app\" nginx-proxy: image: \"nginx\" ports: - \"80:80\" - \"443:443\" volumes: - \"./nginx/nginx.conf:/etc/nginx/nginx.conf:ro\" links: - \"my-app\" Cette configuration permet donc de démarrer deux containers :\n le container qui contient notre application “my-app” qui expose les ports 9000 et 5005 le container qui contient le reverse proxy nginx  Le reverse proxy nginx utilise l’image officielle nginx. La configuration est fournie via la définition d’un volume : \"./nginx/nginx.conf:/etc/nginx/nginx.conf:ro\"\nLe fichier ./nginx/nginx.conf (simplifié) ci-dessous permet ensuite de définir la configuration du reverse proxy pour gérer les différents ports :\nevents { } http { log_format healthd '$msec\"$uri\"' '$status\"$request_time\"$upstream_response_time\"' '$http_x_forwarded_for'; map $http_upgrade $connection_upgrade { default \"upgrade\"; \"\" \"\"; } server { listen 80; client_max_body_size 2G; location / { proxy_pass http://my-app:9000; proxy_http_version 1.1; proxy_set_header Connection $connection_upgrade; proxy_set_header Upgrade $http_upgrade; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_connect_timeout 60; proxy_send_timeout 300; proxy_read_timeout 300; } } server { listen 5005; location / { proxy_pass http://my-app:5005; proxy_http_version 1.1; proxy_set_header Connection $connection_upgrade; proxy_set_header Upgrade $http_upgrade; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; } } } Ce fichier permet :\n de re-diriger les requêtes arrivant sur le port 80 vers le port 9000 du container de notre application de re-diriger les requêtes arrivant sur le port 5005 vers le port 5005 du container de notre application  Notez au passage que Docker Compose permet de définir localement des noms de domaines correspondant au nom des containers ce qui permet de les identifier facilement dans la configuration nginx par exemple : http://my-app:9000\nCe passage à Docker Compose nous a permis de simplifier notablement la configuration précédente et de supprimer plusieurs scripts de personnalisation dans .ebextensions qui ne nécessitent donc plus d’être migrés.\nNous avons toutefois été confrontés à quelques subtilités de configurations liés notamment aux logs nginx. En effet, le reverse proxy de nginx n’étant pas géré automatiquement par Elastic Beanstalk, il est nécessaire de prendre soin de bien paramétrer les logs de notre container nginx.\nElastic Beanstalk accède en effet aux logs de nginx pour deux raisons :\n la récupération des journaux d’une instance le suivi de santé amélioré des instances  Récupération des journaux Elastic Beanstalk permet de télécharger facilement les logs d’un environnement. Pour que les logs de nginx soient bien disponibles lors de cette demande de journaux, les logs nginx doivent être écrits dans le répertoire ${EB_LOG_BASE_DIR}/nginx-proxy de l’instance hôte comme indiqué ici. Ceci peut être configuré via la configuration des logs nginx\naccess_log /var/log/nginx/access.log;  et la déclaration d’un volume dans le docker-compose.yml\n\"${EB_LOG_BASE_DIR}/nginx-proxy:/var/log/nginx\"  De cette manière les logs nginx sont écrits dans le répertoire /var/log/nginx du container, ce qui correspond au dossier ${EB_LOG_BASE_DIR}/nginx-proxy de l’instance hôte.\nSuivi de santé amélioré Pour effectuer un suivi de santé des instances, Elastic Beanstalk scrute les logs de nginx générés dans un format particulier comme indiqué ici et là.\nIl est donc nécessaire de configurer nginx pour définir le format attendu et générer un second fichier de logs avec ce format dans le répertoire attendu :\nlog_format healthd '$msec\"$uri\"' '$status\"$request_time\"$upstream_response_time\"' '$http_x_forwarded_for'; if ($time_iso8601 ~ \"^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})\") { set $year $1; set $month $2; set $day $3; set $hour $4; } access_log /var/log/nginx/healthd/application.log.$year-$month-$day-$hour healthd; et de binder ensuite le répertoire /var/log/nginx/healthddu container avec le répertoire /var/log/nginx/healthd de l’hôte.\n\"/var/log/nginx/healthd:/var/log/nginx/healthd\"  L’ajout de ces options provoque toutefois deux problèmes.\nTout d’abord nginx génère des logs d’erreurs un peu mystérieux dans error.log à chaque requête :\n2021/10/14 05:57:38 [error] 6#6: *1 testing \"/etc/nginx/html\" existence failed (2: No such file or directory) while logging request, client: xxx.xxx.xxx.xxx, server:, request: \"GET / HTTP/1.1\", upstream: \"http://xxx.xxx.xxx.xxx:9000/\", host: \"xxx.xxx.xxx.xxx\"  Ces erreurs sont à priori liées à l’utilisation de variables dans la configuration du access_log. Dans ce cas, étrangement et pour des raisons qui m’échappent encore un peu, nginx vérifie l’existence de la “root directory” du serveur. Ce problème peut donc être contourné simplement en créant la root directory, par exemple via un volume déclaré dans le docker-compose.yml :\n\"/usr/share/nginx/html:/etc/nginx/html\"  Enfin un problème de droits empêche le container nginx d’écrire les logs dans le répertoire /var/log/nginx/healthd de l’hôte configuré dans le docker-compose. La réponse sur la discussion suggère de “bricoler” les id et gid de l’utilisateur nginx du container nginx.\nNous avons préféré configurer les droits du répertoire comme cela est fait dans cet exemple fourni par AWS sur cette page dans le script .ebextensions/01-nginx-healthd.config.\n Attention, cet exemple est un exemple Multi Container Docker pour Amazon Linux et non pour Amazon Linux 2. Il n’est donc pas pertinent de reprendre l’intégralité du script de configuration, uniquement la configuration des droits sur le répertoire /var/log/nginx/healthd\n On ajoute donc un script nommé par exemple 03-setup-healthd.config dans .ebextensions à cet effet :\ncontainer_commands: 01-healthd-configure: command: \"chmod 777 /var/log/nginx/healthd\" Voici le fichier docker-compose.yml complet pour récapituler tout cela :\nversion: \"3.9\" services: my-app: build: . ports: - \"9000:9000\" - \"5005:5005\" env_file: - .env container_name: \"my-app\" nginx-proxy: image: \"nginx\" ports: - \"80:80\" - \"443:443\" volumes: - \"./nginx/nginx.conf:/etc/nginx/nginx.conf:ro\" # nginx configuration file - \"${EB_LOG_BASE_DIR}/nginx-proxy:/var/log/nginx\" # required for instance logs retrieval - \"/usr/share/nginx/html:/etc/nginx/html\" # required to prevent error logs due to usage of variables in healthd logs - \"/var/log/nginx/healthd:/var/log/nginx/healthd\" # required for healthd links: - \"my-app\" Et l’application est prête à être déployée sur la nouvelle plateforme !\n",
+  "wordCount" : "1688",
+  "inLanguage": "en",
+  "datePublished": "2021-10-13T11:59:24+02:00",
+  "dateModified": "2021-10-13T11:59:24+02:00",
+  "author":{
+    "@type": "Person",
+    "name": "amischler"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://www.amischler.fr/posts/elasticbeanstalk-migration-vers-al2/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "amischler's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://www.amischler.fr/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://www.amischler.fr/" accesskey="h" title="amischler&#39;s blog (Alt + H)">amischler&#39;s blog</a>
+            <span class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </span>
+        </div>
+        <ul id="menu">
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title">
+      Migration Elastic Beanstalk vers Amazon Linux 2
+    </h1>
+    <div class="post-meta">October 13, 2021&nbsp;·&nbsp;amischler
+</div>
+  </header> 
+  <div class="post-content"><p>Dans cet article je vais revenir sur la migration d&rsquo;une application déployée sur <a href="https://aws.amazon.com/fr/elasticbeanstalk/">Elastic Beanstalk</a> Amazon Linux/Docker vers la nouvelle plateforme <strong>Amazon Linux 2/Docker</strong>.</p>
+<h2 id="plateforme">Plateforme<a hidden class="anchor" aria-hidden="true" href="#plateforme">#</a></h2>
+<p>Cette migration fait suite à l&rsquo;inscription de la plateforme actuellement utilisée (<em>Docker running on 64bit Amazon Linux/2.6.0</em>) pour déployer l&rsquo;application concernée sur la liste des <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platforms-retiring.html#platforms-retiring.docker">platform versions scheduled for retirement</a>.</p>
+<p><img loading="lazy" src="/images/deprecated-elasticbeanstalk-platform.png" alt="Plateforme Elastic Beanstalk dépréciée"  />
+</p>
+<p>A une version de plateforme Elastic Beanstlak correspondent une version d&rsquo;AMI, une version de Docker et une version de serveur nginx dont on peut retrouver le détail sur <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platform-history-docker-legacy.html">cette page pour les anciennes versions</a>.</p>
+<p>On constate donc que notre plateforme Docker Amazon Linux 2.6.0 utilise :</p>
+<ul>
+<li>l&rsquo;AMI Amazon Linux 2017.03.0</li>
+<li>Docker 1.12.6</li>
+<li>nginx 1.10.2</li>
+</ul>
+<p>Le passage à une version plus récente de la plateforme va donc mettre à jour l&rsquo;ensemble de ces composants. Lors de la réalisation de la migration, <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platforms-supported.html#platforms-supported.docker">la version la plus récente</a> de la plateforme Amazon Linux 2/Docker est la 3.4.7 qui correspond aux composants suivants :</p>
+<ul>
+<li>AMI Amazon Linux 2.0.20210813</li>
+<li>Docker 20.10.7-3</li>
+<li>Docker Compose 1.29.2</li>
+<li>nginx 1.20.0</li>
+</ul>
+<p>Notez au passage que Docker Compose a fait son apparition, je reviendrai sur le sujet ultérieurement dans l&rsquo;article.</p>
+<p>Pour réaliser la migration, il sera donc nécessaire que l&rsquo;application soit compatible avec l&rsquo;ensemble des composants de la plateforme mise à jour.</p>
+<h2 id="déploiement">Déploiement<a hidden class="anchor" aria-hidden="true" href="#déploiement">#</a></h2>
+<p>L&rsquo;interface d&rsquo;Elastic Beanstalk propose certes un bouton &ldquo;Modification&rdquo; au niveau du cartouche Plateforme mais ce bouton ne permet le passage des plateformes Amazon Linux vers Amazon Linux 2. Il permet uniquement de passer vers une version plus récente de la plateforme Amazon Linux/Docker. Cette option ne nous intéresse pas ici, car même les versions plus récentes des plateformes Amazon Linux/Docker sont dépréciées.</p>
+<p>Dans ce cas il est nécessaire de procéder à un <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/using-features.CNAMESwap.html">blue/green deployement</a> c&rsquo;est à dire :</p>
+<ul>
+<li>déployer un nouvel environnement avec la plateforme Amazon Linux 2/Docker</li>
+<li>procéder à un &ldquo;swap&rdquo; d&rsquo;URL entre le nouvel environnement et l&rsquo;ancien, lorsque le nouvel environnement est opérationnel.</li>
+</ul>
+<h2 id="migration">Migration<a hidden class="anchor" aria-hidden="true" href="#migration">#</a></h2>
+<h3 id="docker">Docker<a hidden class="anchor" aria-hidden="true" href="#docker">#</a></h3>
+<p>La première étape de la migration consiste donc à vérifier que notre application est  compatible avec la version de Docker 20.10.7-3. La construction de l&rsquo;image avec le Dockerfile et le déploiement du conteneur se passent sans problème ; aucune adaptation n&rsquo;est nécessaire à ce niveau là.</p>
+<h3 id="amazon-linux-2">Amazon Linux 2<a hidden class="anchor" aria-hidden="true" href="#amazon-linux-2">#</a></h3>
+<p>La vérification de la compatibilité de l&rsquo;application avec la nouvelle version de Docker étant faite, il s&rsquo;agit à présent de migrer l&rsquo;application afin d&rsquo;être compatible avec la plateforme Amazon Linux 2.</p>
+<p>AWS propose un <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/using-features.migration-al.html">guide de migration</a> pour préparer la mise à jour. D&rsquo;après cette documentation, les changements à prévoir dans notre cas sont les suivants :</p>
+<ul>
+<li>déplacement des fichiers de personnalisation de la configuration nginx depuis <code>.ebextensions/nginx</code> vers <code>.platform/nginx</code></li>
+<li>mettre à jour l&rsquo;un de nos scripts .ebextensions qui utilise le mécanisme de <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/custom-platform-hooks.html">Custom platform hooks</a> pour utiliser <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/platforms-linux-extend.html">les nouveaux mécanismes</a> d&rsquo;extension des plateformes Linux Elastic Beanstalk</li>
+</ul>
+<p>Rien de bien méchant sur le papier, toutefois on se retrouve assez vite confrontés à des erreurs dans les scripts .ebxtensions :</p>
+<pre><code>/bin/sh: initctl: command not found
+</code></pre>
+<p>En effet, Amazon Linux 2 <a href="https://serverfault.com/questions/974425/where-should-init-scripts-be-placed-in-amazon-linux-2">n&rsquo;utilise plus Upstart mais SystemD</a>. Des adaptations de ces scripts sont donc à prévoir.</p>
+<h3 id="ports-mutliples">Ports mutliples<a hidden class="anchor" aria-hidden="true" href="#ports-mutliples">#</a></h3>
+<p>Mais avant de poursuivre et d&rsquo;adapter les extensions concernées nous réalisons que ces scripts avaient pour objectif de customiser la plateforme afin de permettre à notre application d&rsquo;être accessible sur deux ports : le port pour servir l&rsquo;application et un port spécifique pour permettre la connection à distance d&rsquo;un debugger JVM.</p>
+<p>En effet, Elastic Beanstalk utilise une configuration standard du reverse proxy nginx qui utilise le port déclaré dans la directive <code>EXPOSE</code> du Dockerfile auquel il transmet les requêtes reçues. Si plusieurs ports sont déclarés dans cette directive, seul le premier est &ldquo;lié&rdquo; à nginx et les autres ports restent inacessibles sur l&rsquo;instance ec2.</p>
+<p>Pour rendre ce deuxième port accessible il avait été nécessaire de <a href="https://forums.aws.amazon.com/message.jspa?messageID=621475">bypasser nginx</a> avec  <a href="https://forums.aws.amazon.com/thread.jspa?messageID=605895#605895">des tweaks peu élégants</a> de la configuration d&rsquo;iptables.</p>
+<h3 id="docker-compose">Docker Compose<a hidden class="anchor" aria-hidden="true" href="#docker-compose">#</a></h3>
+<p>Or il se trouve que la nouvelle plateforme Amazon Linux 2/Docker introduit une nouveauté particulièrement intéressante : la possibilité d&rsquo;utiliser Docker Compose pour décrire les services à démarrer.</p>
+<blockquote>
+<p><strong>Attention</strong> il existait déjà une option sur Elastic Beanstalk pour gérer des <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker_ecs.html">environnements Docker multi-containers avec Amazon Linux</a>  via l&rsquo;utilisation d&rsquo;un fichier <code>Dockerrun.aws.json</code>. La co-existence de documentation relative à cette ancienne approche et la plateforme Amazon Linux 2 avec ou sans Docker Compose sur le site de documentation d&rsquo;AWS rend les choses parfois un peu confuses, il faut bien faire attention à la plateforme à laquelle s&rsquo;appliquent les différentes documentations et dans le cas Amazon Linux 2, des éléments spécifiques à l&rsquo;utilisation de Docker Compose. Les différences entre le multi-container sur Amazon Linux et Docker Compose sur Amazon Linux 2 <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/docker-multicontainer-migration.html">sont résumées ici</a>.</p>
+</blockquote>
+<p>Dans ce cas, le reverse proxy nginx n&rsquo;est pas géré par Elastic Beanstalk et c&rsquo;est à l&rsquo;utilisateur de déclarer et configurer le reverse proxy, ce qui offre beaucoup plus de possibilités de personnalisation.</p>
+<p>Nous ajoutons donc un fichier <code>docker-compose.yml</code>à notre projet qui permet à Elastic Beanstalk d&rsquo;utiliser le <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker_ecs.html">Multi container platform</a> avec Docker Compose.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yml" data-lang="yml"><span style="color:#f92672">version</span>: <span style="color:#e6db74">&#34;3.9&#34;</span>
+<span style="color:#f92672">services</span>:
+    <span style="color:#f92672">my-app</span>:
+        <span style="color:#f92672">build</span>: <span style="color:#ae81ff">.</span>
+        <span style="color:#f92672">ports</span>:
+            - <span style="color:#e6db74">&#34;9000:9000&#34;</span>
+            - <span style="color:#e6db74">&#34;5005:5005&#34;</span>
+        <span style="color:#f92672">env_file</span>:
+            - <span style="color:#ae81ff">.env</span>
+        <span style="color:#f92672">container_name</span>: <span style="color:#e6db74">&#34;my-app&#34;</span>
+    <span style="color:#f92672">nginx-proxy</span>:
+        <span style="color:#f92672">image</span>: <span style="color:#e6db74">&#34;nginx&#34;</span>
+        <span style="color:#f92672">ports</span>:
+            - <span style="color:#e6db74">&#34;80:80&#34;</span>
+            - <span style="color:#e6db74">&#34;443:443&#34;</span>
+        <span style="color:#f92672">volumes</span>:
+            - <span style="color:#e6db74">&#34;./nginx/nginx.conf:/etc/nginx/nginx.conf:ro&#34;</span>
+        <span style="color:#f92672">links</span>:
+            - <span style="color:#e6db74">&#34;my-app&#34;</span>
+</code></pre></div><p>Cette configuration permet donc de démarrer deux containers :</p>
+<ul>
+<li>le container qui contient notre application &ldquo;my-app&rdquo; qui expose les ports 9000 et 5005</li>
+<li>le container qui contient le reverse proxy nginx</li>
+</ul>
+<p>Le reverse proxy nginx utilise l&rsquo;image officielle nginx. La configuration est fournie via la définition d&rsquo;un volume : <code>&quot;./nginx/nginx.conf:/etc/nginx/nginx.conf:ro&quot;</code></p>
+<p>Le fichier <code>./nginx/nginx.conf</code> (simplifié) ci-dessous permet ensuite de définir la configuration du reverse proxy pour gérer les différents ports :</p>
+<pre tabindex="0"><code>events {
+
+}
+
+http {
+    log_format healthd '$msec&quot;$uri&quot;'
+              '$status&quot;$request_time&quot;$upstream_response_time&quot;'
+              '$http_x_forwarded_for';
+
+    map $http_upgrade $connection_upgrade {
+        default       &quot;upgrade&quot;;
+        &quot;&quot;            &quot;&quot;;
+    }
+
+    server {
+      listen 80;
+      client_max_body_size 2G;
+      
+      location / {
+        proxy_pass            http://my-app:9000;
+        proxy_http_version    1.1;
+        proxy_set_header    Connection            $connection_upgrade;
+        proxy_set_header    Upgrade                $http_upgrade;
+        proxy_set_header    Host                $host;
+        proxy_set_header    X-Real-IP            $remote_addr;
+        proxy_set_header    X-Forwarded-For        $proxy_add_x_forwarded_for;
+        proxy_connect_timeout       60;
+        proxy_send_timeout          300;
+        proxy_read_timeout          300;
+      }
+    }
+
+    server {
+      listen 5005;
+
+      location / {
+        proxy_pass http://my-app:5005;
+        proxy_http_version    1.1;
+        proxy_set_header    Connection            $connection_upgrade;
+        proxy_set_header    Upgrade                $http_upgrade;
+        proxy_set_header    Host                $host;
+        proxy_set_header    X-Real-IP            $remote_addr;
+        proxy_set_header    X-Forwarded-For        $proxy_add_x_forwarded_for;
+      }
+    }
+}
+
+</code></pre><p>Ce fichier permet :</p>
+<ul>
+<li>de re-diriger les requêtes arrivant sur le port 80 vers le port 9000 du container de notre application</li>
+<li>de re-diriger les requêtes arrivant sur le port 5005 vers le port 5005 du container de notre application</li>
+</ul>
+<p>Notez au passage que Docker Compose permet de définir localement des noms de domaines correspondant au nom des containers ce qui permet de les identifier facilement dans la configuration nginx par exemple : <code>http://my-app:9000</code></p>
+<p>Ce passage à Docker Compose nous a permis de simplifier notablement la configuration précédente et de supprimer plusieurs scripts de personnalisation dans .ebextensions qui ne nécessitent donc plus d&rsquo;être migrés.</p>
+<p>Nous avons toutefois été confrontés à quelques subtilités de configurations liés notamment aux logs nginx. En effet, le reverse proxy de nginx n&rsquo;étant pas géré automatiquement par Elastic Beanstalk, il est nécessaire de prendre soin de bien paramétrer les logs de notre container nginx.</p>
+<p>Elastic Beanstalk accède en effet aux logs de nginx pour deux raisons :</p>
+<ul>
+<li>la récupération des journaux d&rsquo;une instance</li>
+<li>le suivi de santé amélioré des instances</li>
+</ul>
+<h3 id="récupération-des-journaux">Récupération des journaux<a hidden class="anchor" aria-hidden="true" href="#récupération-des-journaux">#</a></h3>
+<p>Elastic Beanstalk permet de télécharger facilement les logs d&rsquo;un environnement. Pour que les logs de nginx soient bien disponibles lors de cette demande de journaux, les logs nginx doivent être écrits dans le répertoire <code>${EB_LOG_BASE_DIR}/nginx-proxy</code> de l&rsquo;instance hôte <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.container.console.html#docker-env-cfg.dc-customized-logging">comme indiqué ici</a>. Ceci peut être configuré via la configuration des logs nginx</p>
+<pre><code>access_log /var/log/nginx/access.log;
+</code></pre>
+<p>et la déclaration d&rsquo;un volume dans le docker-compose.yml</p>
+<pre><code>&quot;${EB_LOG_BASE_DIR}/nginx-proxy:/var/log/nginx&quot;
+</code></pre>
+<p>De cette manière les logs nginx sont écrits dans le répertoire <code>/var/log/nginx</code> du container, ce qui correspond au dossier <code>${EB_LOG_BASE_DIR}/nginx-proxy</code> de l&rsquo;instance hôte.</p>
+<h3 id="suivi-de-santé-amélioré">Suivi de santé amélioré<a hidden class="anchor" aria-hidden="true" href="#suivi-de-santé-amélioré">#</a></h3>
+<p>Pour effectuer un suivi de santé des instances, Elastic Beanstalk scrute les logs de nginx générés dans un format particulier comme indiqué <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.container.console.html#docker-env-cfg.healthd-logging">ici</a> et <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.container.console.html#docker-env-cfg.healthd-logging">là</a>.</p>
+<p>Il est donc nécessaire de configurer nginx pour définir le format attendu et générer un second fichier de logs avec ce format dans le répertoire attendu :</p>
+<pre tabindex="0"><code>log_format healthd  '$msec&quot;$uri&quot;'
+                   '$status&quot;$request_time&quot;$upstream_response_time&quot;'
+                   '$http_x_forwarded_for';
+if ($time_iso8601 ~ &quot;^(\d{4})-(\d{2})-(\d{2})T(\d{2})&quot;) {
+   set $year $1;
+   set $month $2;
+   set $day $3;
+   set $hour $4;
+}
+
+access_log /var/log/nginx/healthd/application.log.$year-$month-$day-$hour healthd;
+</code></pre><p>et de binder ensuite le répertoire <code>/var/log/nginx/healthd</code>du container avec le répertoire <code>/var/log/nginx/healthd</code> de l&rsquo;hôte.</p>
+<pre><code>&quot;/var/log/nginx/healthd:/var/log/nginx/healthd&quot;
+</code></pre>
+<p>L&rsquo;ajout de ces options provoque toutefois deux problèmes.</p>
+<p>Tout d&rsquo;abord nginx génère des logs d&rsquo;erreurs un peu mystérieux dans error.log à chaque requête :</p>
+<pre><code>2021/10/14 05:57:38 [error] 6#6: *1 testing &quot;/etc/nginx/html&quot; existence failed (2: No such file or directory) while logging request, client: xxx.xxx.xxx.xxx, server:, request: &quot;GET / HTTP/1.1&quot;, upstream: &quot;http://xxx.xxx.xxx.xxx:9000/&quot;, host: &quot;xxx.xxx.xxx.xxx&quot;
+</code></pre>
+<p>Ces erreurs sont à priori liées à l&rsquo;utilisation de variables dans la configuration du access_log. <a href="https://serverfault.com/questions/762801/how-to-use-variables-in-access-log-filename-with-nginx-healthd/762814#762814">Dans ce cas</a>, étrangement et pour des raisons qui m&rsquo;échappent encore un peu, nginx vérifie l&rsquo;existence de la &ldquo;root directory&rdquo; du serveur. Ce problème peut donc être contourné simplement en créant la root directory, par exemple via un volume déclaré dans le docker-compose.yml :</p>
+<pre><code>&quot;/usr/share/nginx/html:/etc/nginx/html&quot;
+</code></pre>
+<p>Enfin <a href="https://forums.aws.amazon.com/message.jspa?messageID=942848">un problème de droits</a> empêche le container nginx d&rsquo;écrire les logs dans le répertoire <code>/var/log/nginx/healthd</code> de l&rsquo;hôte configuré dans le docker-compose. La réponse sur la discussion suggère de &ldquo;bricoler&rdquo; les id et gid de l&rsquo;utilisateur nginx du container nginx.</p>
+<p>Nous avons préféré configurer les droits du répertoire comme cela est fait dans <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/samples/docker-multicontainer-v2.zip">cet exemple</a> fourni par AWS sur <a href="https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-serverlogs.html#health-enhanced-serverlogs.configure">cette page</a> dans le script <code>.ebextensions/01-nginx-healthd.config</code>.</p>
+<blockquote>
+<p>Attention, cet exemple est un exemple Multi Container Docker pour Amazon Linux et non pour Amazon Linux 2. Il n&rsquo;est donc pas pertinent de reprendre l&rsquo;intégralité du script de configuration, uniquement la configuration des droits sur le répertoire <code>/var/log/nginx/healthd</code></p>
+</blockquote>
+<p>On ajoute donc un script nommé par exemple <code>03-setup-healthd.config</code> dans .ebextensions à cet effet :</p>
+<pre tabindex="0"><code>container_commands:
+    01-healthd-configure:
+        command: &quot;chmod 777 /var/log/nginx/healthd&quot;
+</code></pre><p>Voici le fichier docker-compose.yml complet pour récapituler tout cela :</p>
+<pre tabindex="0"><code>version: &quot;3.9&quot;
+services:
+  my-app:
+    build: .
+    ports:
+      - &quot;9000:9000&quot;
+      - &quot;5005:5005&quot;
+    env_file:
+      - .env
+    container_name: &quot;my-app&quot;
+  nginx-proxy:
+      image: &quot;nginx&quot;
+      ports:
+        - &quot;80:80&quot;
+        - &quot;443:443&quot;
+      volumes:
+        - &quot;./nginx/nginx.conf:/etc/nginx/nginx.conf:ro&quot; # nginx configuration file
+        - &quot;${EB_LOG_BASE_DIR}/nginx-proxy:/var/log/nginx&quot; # required for instance logs retrieval
+        - &quot;/usr/share/nginx/html:/etc/nginx/html&quot; # required to prevent error logs due to usage of variables in healthd logs
+        - &quot;/var/log/nginx/healthd:/var/log/nginx/healthd&quot; # required for healthd
+      links:
+        - &quot;my-app&quot;
+</code></pre><p>Et l&rsquo;application est prête à être déployée sur la nouvelle plateforme !</p>
+<p><img loading="lazy" src="/images/latest-elasticbeanstalk-platform.png" alt="Plateforme Elastic Beanstalk à jour"  />
+</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2021 <a href="http://www.amischler.fr/">amischler&#39;s blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://git.io/hugopapermod" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+    menu.onscroll = function () {
+        localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
